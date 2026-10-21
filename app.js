@@ -230,22 +230,16 @@ function switchMainView(viewName) {
     btn.classList.toggle("active", btn.getAttribute("data-nav") === viewName);
   });
 
-  // Atualiza título no topo e visibilidade do botão "🏠 Início"
+  // Atualiza título no topo
   const viewTitles = {
-    hoje: "🌿 Vida Fibro",
+    hoje: "Rotina 3.0",
     casa: "🏡 Casa (14d)",
     exercicios: "🧘‍♀️ Exercícios",
     cardapio: "🍽️ Cardápio",
     estoque: "📦 Estoque"
   };
   const topTitleEl = document.getElementById("topViewTitle");
-  if (topTitleEl) topTitleEl.textContent = viewTitles[viewName] || "🌿 Vida Fibro";
-
-  const btnHomeTop = document.getElementById("btnTopHome");
-  if (btnHomeTop) {
-    // Fica sempre visível; quando está fora do Início, ganha destaque extra
-    btnHomeTop.style.opacity = (viewName === "hoje") ? "0.65" : "1";
-  }
+  if (topTitleEl) topTitleEl.textContent = viewTitles[viewName] || "Rotina 3.0";
 
   // A barra de dia do ciclo aparece em Hoje, Casa, Exercícios e Cardápio
   const cycleBar = document.getElementById("sharedCycleBar");

@@ -12,21 +12,20 @@
 </head>
 <body>
 
-  <!-- TOPBAR FIXA COM BOTÃO DE VOLTAR À PÁGINA INICIAL -->
+  <!-- TOPBAR FIXA COM ÍCONE DO APP À ESQUERDA E BOTÃO INÍCIO À DIREITA -->
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <button type="button" class="btn-home-top" id="btnTopHome" title="Voltar para a Página Inicial">
-          <span>🏠</span>
-          <span>Início</span>
-        </button>
-        <img src="./icons/icon-192.png" alt="Rotina" style="width:28px;height:28px;border-radius:8px;object-fit:cover;border:1px solid var(--border);" />
+        <img src="./icons/icon-192.png" alt="Rotina" style="width:34px;height:34px;border-radius:10px;object-fit:cover;border:1px solid var(--border);box-shadow:var(--shadow-sm);" />
         <span class="brand-title" id="topViewTitle">Rotina 3.0</span>
       </div>
 
       <div class="top-actions">
+        <button type="button" class="btn-icon-top" id="btnTopHome" title="Voltar para a Página Inicial">
+          🏠
+        </button>
         <button type="button" class="btn-icon-top" id="btnOpenCycleSetup" title="Sincronizar quinta-feira da diarista">
-          🗓️ <span id="topCycleBadge">Dia 1</span>
+          🗓️ <span id="topCycleBadge">D1 (5ª)</span>
         </button>
         <button type="button" class="btn-icon-top" id="btnGlobalBackup" title="Baixar backup completo">
           📤
