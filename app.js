@@ -1677,6 +1677,61 @@ function openRecipeEditModal(recId = null) {
 }
 
 let editingInvCtx = null;
+
+function getExistingSubgroupsForEnv(envId) {
+  const groupsSet = new Set();
+  const seedList = (typeof SEED_INVENTORY !== "undefined" && SEED_INVENTORY[envId]) ? SEED_INVENTORY[envId] : [];
+  const stateList = state.inventory?.[envId] || [];
+
+  [...seedList, ...stateList].forEach(it => {
+    const g = (it?.group || "").trim();
+    if (g) groupsSet.add(g);
+  });
+
+  if (groupsSet.size === 0) {
+    groupsSet.add("Geral");
+  }
+
+  return Array.from(groupsSet).sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+function populateInvSubgroups(envId, preferredGroup = "") {
+  const selectEl = document.getElementById("invItemGroupSelect");
+  const newWrapEl = document.getElementById("invNewGroupWrap");
+  const customInputEl = document.getElementById("invItemGroupCustom");
+  if (!selectEl) return;
+
+  const groups = getExistingSubgroupsForEnv(envId);
+  const cleanPref = (preferredGroup || "").trim();
+  if (cleanPref && !groups.includes(cleanPref)) {
+    groups.push(cleanPref);
+    groups.sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }
+
+  selectEl.innerHTML = groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("") +
+    `<option value="__novo__">➕ Novo subgrupo...</option>`;
+
+  if (cleanPref && groups.includes(cleanPref)) {
+    selectEl.value = cleanPref;
+  } else if (groups.length > 0) {
+    selectEl.value = groups[0];
+  } else {
+    selectEl.value = "__novo__";
+  }
+
+  const toggleCustom = () => {
+    const isNew = selectEl.value === "__novo__";
+    if (newWrapEl) newWrapEl.style.display = isNew ? "block" : "none";
+    if (isNew && customInputEl) {
+      customInputEl.focus();
+    }
+  };
+
+  if (customInputEl) customInputEl.value = "";
+  toggleCustom();
+  selectEl.onchange = toggleCustom;
+}
+
 function openInvItemModal(envId, itemId = null) {
   editingInvCtx = { envId, itemId };
   const list = state.inventory?.[envId] || [];
@@ -1685,17 +1740,18 @@ function openInvItemModal(envId, itemId = null) {
   document.getElementById("modalInvTitle").textContent = item ? "✏️ Editar Item" : "➕ Novo Item";
   document.getElementById("invItemName").value = item ? item.name : "";
   document.getElementById("invItemEnv").value = envId;
-  document.getElementById("invItemGroup").value = item ? (item.group || "") : "";
+  populateInvSubgroups(envId, item ? (item.group || "") : "");
   document.getElementById("invItemQty").value = item ? (item.qty || 0) : 0;
   document.getElementById("invItemUnit").value = item ? (item.unit || (envId === "remedios" ? "comp" : "UN")) : (envId === "remedios" ? "comp" : "UN");
 
   const medFields = document.getElementById("medExtraFields");
-  const updateMedFieldsVis = () => {
+  const onEnvChange = () => {
     const selEnv = document.getElementById("invItemEnv").value;
     medFields.style.display = (selEnv === "remedios") ? "block" : "none";
+    populateInvSubgroups(selEnv, "");
   };
-  updateMedFieldsVis();
-  document.getElementById("invItemEnv").onchange = updateMedFieldsVis;
+  medFields.style.display = (envId === "remedios") ? "block" : "none";
+  document.getElementById("invItemEnv").onchange = onEnvChange;
 
   document.getElementById("invMedTracked").checked = item ? !!item.tracked : (envId === "remedios");
   document.getElementById("invMedDose").value = item?.dose || 1;
@@ -2089,7 +2145,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!name) { alert("Informe o nome do item."); return; }
 
     const targetEnv = document.getElementById("invItemEnv").value;
-    const group = document.getElementById("invItemGroup").value.trim() || "Geral";
+    const selGroupVal = document.getElementById("invItemGroupSelect")?.value || "";
+    const customGroupVal = document.getElementById("invItemGroupCustom")?.value.trim() || "";
+    const group = (selGroupVal === "__novo__")
+      ? (customGroupVal || "Geral")
+      : (selGroupVal || "Geral");
+    if (selGroupVal === "__novo__" && !customGroupVal) {
+      alert("Digite o nome do novo subgrupo ou selecione um existente.");
+      return;
+    }
     const qty = Math.max(0, parseFloat(document.getElementById("invItemQty").value) || 0);
     const unit = document.getElementById("invItemUnit").value;
     const tracked = (targetEnv === "remedios") && document.getElementById("invMedTracked").checked;
