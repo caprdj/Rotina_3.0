@@ -82,7 +82,7 @@ function createDefaultState() {
   for (let d = 1; d <= 14; d++) energyLog[d] = "alta";
 
   return {
-    version: 3,
+    version: 3.1,
     anchorThursday: anchorISO,
     selectedDay: computeAutoCycleDay(anchorISO),
     energyLog, // registro de energia por dia (sem esconder tarefas!)
@@ -111,6 +111,12 @@ function loadAppState() {
     const parsed = JSON.parse(raw);
     const def = createDefaultState();
     const merged = Object.assign(def, parsed);
+
+    // Migração automática para versão 3.1 com todos os exercícios detalhados do App 2.0
+    if (!parsed.version || parsed.version < 3.1) {
+      merged.exercisesByDay = deepClone(SEED_EXERCISES_14);
+      merged.version = 3.1;
+    }
 
     // Garante todas as 7 categorias do estoque
     INVENTORY_ENVS.forEach(env => {
@@ -387,19 +393,34 @@ function renderTodayView() {
         <div class="muted" style="margin-bottom:8px;">Mostrando série <b>${curEnergy === "alta" ? "🔋 Completa (Alta)" : "🪫 Leve (Baixa)"}</b> em Casa:</div>
         ${exList.map(ex => {
           const done = !!state.exDone?.[`${day}__${ex.id}`];
+          const hasInstr = !!(ex.instrucao && ex.instrucao.trim());
           return `
             <div class="task-card ${done ? "done-all" : ""}" style="padding:8px 10px;">
-              <label class="task-main-check" style="cursor:pointer;">
-                <input type="checkbox" data-today-ex="${escapeHtml(ex.id)}" ${done ? "checked" : ""} />
-                <div>
-                  <div class="task-name">${escapeHtml(ex.nome)}</div>
-                  <div class="muted">${escapeHtml(ex.equipamento || "Sem equipamento")}</div>
-                </div>
-              </label>
+              <div class="task-top">
+                <label class="task-main-check" style="cursor:pointer;">
+                  <input type="checkbox" data-today-ex="${escapeHtml(ex.id)}" ${done ? "checked" : ""} />
+                  <div>
+                    <div class="task-name">${escapeHtml(ex.nome)}</div>
+                    <div class="muted">${escapeHtml(ex.equipamento || "Sem equipamento")}</div>
+                  </div>
+                </label>
+                ${hasInstr ? `<button type="button" class="icon-btn" data-today-ex-info="${escapeHtml(ex.id)}" style="font-weight:800;color:var(--primary-dark);background:var(--primary-soft);">+</button>` : ""}
+              </div>
+              ${hasInstr ? `<div id="today-ex-info-${escapeHtml(ex.id)}" class="muted" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);line-height:1.4;">${escapeHtml(ex.instrucao)}</div>` : ""}
             </div>
           `;
         }).join("")}
       `;
+      exSumEl.querySelectorAll("[data-today-ex-info]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-today-ex-info");
+          const el = document.getElementById(`today-ex-info-${id}`);
+          if (!el) return;
+          const vis = el.style.display === "block";
+          el.style.display = vis ? "none" : "block";
+          btn.textContent = vis ? "+" : "−";
+        });
+      });
       exSumEl.querySelectorAll("[data-today-ex]").forEach(cb => {
         cb.addEventListener("change", () => {
           const exId = cb.getAttribute("data-today-ex");
@@ -820,26 +841,41 @@ function renderExercisesView() {
           <div class="tier-title" style="margin-bottom:8px;">🧩 ${escapeHtml(eq)}</div>
           ${byEquip[eq].map(ex => {
             const done = !!state.exDone?.[`${day}__${ex.id}`];
+            const hasInstr = !!(ex.instrucao && ex.instrucao.trim());
             return `
               <div class="task-card ${done ? "done-all" : ""}">
                 <div class="task-top">
                   <label class="task-main-check" style="cursor:pointer;">
                     <input type="checkbox" data-ex-check="${escapeHtml(ex.id)}" ${done ? "checked" : ""} />
-                    <div>
-                      <div class="task-name">${escapeHtml(ex.nome)}</div>
-                      ${ex.instrucao ? `<div class="muted" style="margin-top:4px;line-height:1.35;">${escapeHtml(ex.instrucao)}</div>` : ""}
-                    </div>
+                    <div class="task-name">${escapeHtml(ex.nome)}</div>
                   </label>
-                  <div style="display:flex;gap:2px;">
-                    <button type="button" class="icon-btn" data-ex-edit="${escapeHtml(ex.id)}">✏️</button>
-                    <button type="button" class="icon-btn" data-ex-del="${escapeHtml(ex.id)}">🗑️</button>
+                  <div style="display:flex;gap:4px;align-items:center;">
+                    ${hasInstr ? `<button type="button" class="icon-btn" data-ex-toggle-info="${escapeHtml(ex.id)}" title="Ver descrição do exercício" style="font-weight:800;color:var(--primary-dark);background:var(--primary-soft);">+</button>` : ""}
+                    <button type="button" class="icon-btn" data-ex-edit="${escapeHtml(ex.id)}" title="Editar">✏️</button>
+                    <button type="button" class="icon-btn" data-ex-del="${escapeHtml(ex.id)}" title="Excluir">🗑️</button>
                   </div>
                 </div>
+                ${hasInstr ? `
+                  <div id="ex-info-${escapeHtml(ex.id)}" class="muted" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);line-height:1.45;">
+                    ${escapeHtml(ex.instrucao)}
+                  </div>
+                ` : ""}
               </div>
             `;
           }).join("")}
         </div>
       `).join("");
+
+      listContainer.querySelectorAll("[data-ex-toggle-info]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const exId = btn.getAttribute("data-ex-toggle-info");
+          const infoEl = document.getElementById(`ex-info-${exId}`);
+          if (!infoEl) return;
+          const isVis = infoEl.style.display === "block";
+          infoEl.style.display = isVis ? "none" : "block";
+          btn.textContent = isVis ? "+" : "−";
+        });
+      });
 
       listContainer.querySelectorAll("[data-ex-check]").forEach(cb => {
         cb.addEventListener("change", () => {
