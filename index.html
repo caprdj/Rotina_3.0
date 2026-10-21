@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vida Fibro 3.0 — Rotina, Cardápio & Estoque</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="theme-color" content="#7c3aed" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <!-- TOPBAR FIXA COM BOTÃO DE VOLTAR À PÁGINA INICIAL -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand-group">
+        <button type="button" class="btn-home-top" id="btnTopHome" title="Voltar para a Página Inicial">
+          <span>🏠</span>
+          <span>Início</span>
+        </button>
+        <img src="./icons/icon-192.png" alt="Rotina" style="width:28px;height:28px;border-radius:8px;object-fit:cover;border:1px solid var(--border);" />
+        <span class="brand-title" id="topViewTitle">Rotina 3.0</span>
+      </div>
+
+      <div class="top-actions">
+        <button type="button" class="btn-icon-top" id="btnOpenCycleSetup" title="Sincronizar quinta-feira da diarista">
+          🗓️ <span id="topCycleBadge">Dia 1</span>
+        </button>
+        <button type="button" class="btn-icon-top" id="btnGlobalBackup" title="Baixar backup completo">
+          📤
+        </button>
+        <button type="button" class="btn-icon-top" id="btnGlobalRestore" title="Restaurar backup JSON">
+          📥
+        </button>
+        <input type="file" id="globalRestoreInput" accept="application/json" style="display:none" />
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTEÚDO PRINCIPAL (LARGURA MOBILE-FIRST) -->
+  <main class="app-container">
+
+    <!-- BARRA COMPARTILHADA DE DIA DO CICLO E MONITOR DE ENERGIA -->
+    <section class="cycle-control-bar" id="sharedCycleBar">
+      <div class="cycle-row-top">
+        <select id="globalDaySelect" aria-label="Selecionar dia do ciclo"></select>
+        <button type="button" class="btn btn-sm soft" id="btnGoTodayCycle">Hoje</button>
+      </div>
+
+      <div class="cycle-row-bottom">
+        <span class="muted" style="font-weight:700;">Energia do dia:</span>
+        <div class="energy-toggle-group">
+          <button type="button" class="btn btn-sm" id="btnEnergyAlta" data-energy-set="alta">🔋 Alta</button>
+          <button type="button" class="btn btn-sm" id="btnEnergyBaixa" data-energy-set="baixa">🪫 Baixa</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 1: 🏠 PÁGINA INICIAL & RESUMO DE HOJE
+    =========================================== -->
+    <section id="view-hoje" class="main-view active">
+      <!-- Alertas de Remédios acabando -->
+      <div id="todayMedAlerts"></div>
+
+      <!-- Grade de Atalhos Rápidos (Estilo Página Inicial) -->
+      <div class="home-nav-grid">
+        <button type="button" class="home-tile" data-JumpView="casa">
+          <div class="home-tile-icon">🏡</div>
+          <div class="home-tile-title">Casa (14 dias)</div>
+          <div class="home-tile-sub">Tarefas em 3 níveis e micro-etapas</div>
+        </button>
+
+        <button type="button" class="home-tile" data-JumpView="exercicios">
+          <div class="home-tile-icon">🧘‍♀️</div>
+          <div class="home-tile-title">Exercícios</div>
+          <div class="home-tile-sub">Séries em Casa ou Viagem</div>
+        </button>
+
+        <button type="button" class="home-tile" data-JumpView="cardapio">
+          <div class="home-tile-icon">🍽️</div>
+          <div class="home-tile-title">Cardápio</div>
+          <div class="home-tile-sub">108 receitas & plano do dia</div>
+        </button>
+
+        <button type="button" class="home-tile" data-JumpView="estoque">
+          <div class="home-tile-icon">📦</div>
+          <div class="home-tile-title">Estoque & Remédios</div>
+          <div class="home-tile-sub">Monitor de caixas & compras</div>
+        </button>
+      </div>
+
+      <!-- Painel Resumo do Dia Atual -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🏡 Tarefas de Hoje</div>
+          <button type="button" class="btn btn-sm soft" data-JumpView="casa">Ver 3 níveis →</button>
+        </div>
+        <div class="muted" id="todayDomesticSubtitle" style="margin-bottom:8px;"></div>
+        <div id="todayDomesticSummary"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🧘‍♀️ Movimento de Hoje</div>
+          <button type="button" class="btn btn-sm soft" data-JumpView="exercicios">Ver série →</button>
+        </div>
+        <div id="todayExerciseSummary"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🍽️ Refeições de Hoje</div>
+          <button type="button" class="btn btn-sm soft" data-JumpView="cardapio">Planejar →</button>
+        </div>
+        <div id="todayMenuSummary"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🧊 Prontos no Freezer (Salva-vidas)</div>
+          <button type="button" class="btn btn-sm soft" data-JumpView="estoque">Abrir Estoque →</button>
+        </div>
+        <div id="todayFreezerSummary"></div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 2: 🏡 CASA (TAREFAS EM 3 NÍVEIS + ETAPAS)
+    =========================================== -->
+    <section id="view-casa" class="main-view">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="casaDayTitle">🏡 Tarefas do Dia</div>
+            <div class="muted">Divididas em etapas e 3 níveis para você fazer no seu ritmo.</div>
+          </div>
+          <button type="button" class="btn primary btn-sm" id="btnNewTask">+ Nova</button>
+        </div>
+
+        <!-- Filtro deslizável de nível -->
+        <div class="segmented-bar" id="casaLevelFilterBar">
+          <button type="button" class="seg-btn active" data-level-filter="all">Todos (3 níveis)</button>
+          <button type="button" class="seg-btn" data-level-filter="indispensavel">🚨 Indispensável</button>
+          <button type="button" class="seg-btn" data-level-filter="desejavel">✨ Desejável</button>
+          <button type="button" class="seg-btn" data-level-filter="pode_esperar">⏳ Pode Esperar</button>
+        </div>
+
+        <div id="domesticTiersContainer"></div>
+      </div>
+
+      <!-- Tarefas Reagendadas -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            🗂 Reagendadas
+            <span class="badge primary" id="flexCountBadge">0</span>
+          </div>
+          <button type="button" class="btn btn-sm danger" id="btnClearFlex">Limpar</button>
+        </div>
+        <div id="flexListContainer"></div>
+      </div>
+
+      <!-- Estatísticas da Quinzena & Histórico -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 Progresso da Quinzena</div>
+          <span class="badge primary" id="casaCyclePctBadge">0%</span>
+        </div>
+        <div id="casaStatsBox"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📚 Histórico de Ciclos</div>
+          <div style="display:flex;gap:6px;">
+            <button type="button" class="btn btn-sm soft" id="btnRestartCycle">🌀 Nova Quinzena</button>
+            <button type="button" class="btn btn-sm" id="btnDownloadHistoryTxt">⬇️ TXT</button>
+          </div>
+        </div>
+        <div id="cycleHistoryBox"></div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 3: 🧘‍♀️ EXERCÍCIOS (CASA & VIAGEM)
+    =========================================== -->
+    <section id="view-exercicios" class="main-view">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🧘‍♀️ Exercícios do Dia</div>
+            <div class="muted">Escolha o local e a série (Completa ou Leve).</div>
+          </div>
+          <button type="button" class="btn primary btn-sm" id="btnNewExercise">+ Novo</button>
+        </div>
+
+        <div class="segmented-bar" style="margin-bottom:8px;">
+          <button type="button" class="seg-btn active" data-ex-ctx="casa">🏡 Em Casa</button>
+          <button type="button" class="seg-btn" data-ex-ctx="viagem">🧳 Em Viagem</button>
+        </div>
+
+        <div class="segmented-bar">
+          <button type="button" class="seg-btn active" data-ex-energy="alta">🔋 Série Completa (Alta)</button>
+          <button type="button" class="seg-btn" data-ex-energy="baixa">🪫 Série Leve (Baixa)</button>
+        </div>
+
+        <div id="exercisesListContainer"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 Resumo de Movimento (14d)</div>
+          <span class="badge primary" id="exStatsBadge">0/14 dias</span>
+        </div>
+        <div id="exerciseStatsContainer"></div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 4: 🍽️ CARDÁPIO & RECEITAS
+    =========================================== -->
+    <section id="view-cardapio" class="main-view">
+      <div class="segmented-bar">
+        <button type="button" class="seg-btn active" data-menu-sub="planejar">🗓️ Dia</button>
+        <button type="button" class="seg-btn" data-menu-sub="receitas">📖 Receitas (108)</button>
+        <button type="button" class="seg-btn" data-menu-sub="ingredientes">🧾 Ingredientes</button>
+      </div>
+
+      <!-- Sub-aba 4.1: Planejar Dia -->
+      <div id="menuSub-planejar">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" id="menuDayHeaderTitle">Cardápio do Dia</div>
+            <button type="button" class="btn btn-sm danger" id="btnClearMenuDay">Limpar dia</button>
+          </div>
+          <div id="menuDaySlotsContainer"></div>
+        </div>
+      </div>
+
+      <!-- Sub-aba 4.2: Banco de Receitas -->
+      <div id="menuSub-receitas" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔍 Buscar Receitas</div>
+            <button type="button" class="btn primary btn-sm" id="btnOpenNewRecipe">+ Nova Receita</button>
+          </div>
+
+          <div class="form-group">
+            <input type="text" id="recSearch" placeholder="🔎 Nome ou ingrediente (ex: frango, tapioca...)" />
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Refeição</label>
+              <select id="recFilterMeal"></select>
+            </div>
+            <div class="form-group">
+              <label>Proteína</label>
+              <select id="recFilterProtein"></select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Tipo</label>
+              <select id="recFilterKind"></select>
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end;margin-bottom:0;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-bottom:8px;">
+                <input type="checkbox" id="recFilterFav" style="width:18px;height:18px;" />
+                <span>⭐ Favoritas</span>
+              </label>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button type="button" class="btn soft btn-sm" id="btnResetRecFilters">Limpar filtros</button>
+            <button type="button" class="btn btn-sm" id="btnImportRecipesJson">📥 Importar JSON</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Resultados</div>
+            <span class="badge primary" id="recCountBadge">0 receitas</span>
+          </div>
+          <div id="recipesListContainer"></div>
+        </div>
+      </div>
+
+      <!-- Sub-aba 4.3: Ingredientes do Plano -->
+      <div id="menuSub-ingredientes" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">🧾 Ingredientes do Plano (14d)</div>
+              <div class="muted">Envie qualquer ingrediente direto para sua Lista de Compras.</div>
+            </div>
+          </div>
+          <div id="menuGeneratedShopContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         ABA 5: 📦 ESTOQUE, REMÉDIOS & COMPRAS
+    =========================================== -->
+    <section id="view-estoque" class="main-view">
+      <div class="segmented-bar">
+        <button type="button" class="seg-btn active" data-inv-sub="estoque">📦 Estoque</button>
+        <button type="button" class="seg-btn" data-inv-sub="remedios">💊 Remédios</button>
+        <button type="button" class="seg-btn" data-inv-sub="compras">🛒 Compras <span id="shopTabCount" class="badge primary" style="margin-left:3px;">0</span></button>
+      </div>
+
+      <!-- Sub-aba 5.1: Estoque Geral por Categoria -->
+      <div id="invSub-estoque">
+        <!-- Barra deslizável com as 7 categorias -->
+        <div class="segmented-bar" id="invEnvButtonsBar"></div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" id="invCurrentEnvTitle">📦 Despensa</div>
+              <div class="muted" id="invSummaryCounters"></div>
+            </div>
+            <button type="button" class="btn primary btn-sm" id="btnOpenAddInvItem">+ Item</button>
+          </div>
+
+          <div class="form-group">
+            <input type="text" id="invSearchInput" placeholder="🔎 Buscar nesta categoria..." />
+          </div>
+
+          <div id="inventoryItemsContainer"></div>
+        </div>
+      </div>
+
+      <!-- Sub-aba 5.2: Monitor Inteligente de Remédios -->
+      <div id="invSub-remedios" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">💊 Monitor de Remédios</div>
+              <div class="muted">Desconta a dose automaticamente a cada dia e alerta quando estiver acabando.</div>
+            </div>
+            <button type="button" class="btn primary btn-sm" id="btnAddNewMed">➕ Remédio</button>
+          </div>
+          <div id="medMonitorContainer"></div>
+        </div>
+      </div>
+
+      <!-- Sub-aba 5.3: Lista de Compras Unificada -->
+      <div id="invSub-compras" style="display:none;">
+        <div class="segmented-bar" id="shopFilterBar">
+          <button type="button" class="seg-btn active" data-shop-filter="all">📝 Geral</button>
+          <button type="button" class="seg-btn" data-shop-filter="hoje">🛒 Compra do Dia</button>
+          <button type="button" class="seg-btn" data-shop-filter="feira">🥗 Feira</button>
+          <button type="button" class="seg-btn" data-shop-filter="mercado">🏪 Mercado</button>
+          <button type="button" class="seg-btn" data-shop-filter="farmacia">💊 Farmácia</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🛒 Lista de Compras</div>
+            <button type="button" class="btn btn-sm" id="btnCopyShoppingList">📋 Copiar</button>
+          </div>
+
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <input type="text" id="quickShopInput" placeholder="Incluir item avulso..." style="flex:1;" />
+            <button type="button" class="btn soft btn-sm" id="btnQuickShopAdd">+ Incluir</button>
+          </div>
+
+          <div id="shoppingListContainer"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR FIXA (5 ABAS) -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button type="button" class="nav-item active" data-nav="hoje">
+        <span class="nav-icon">🏠</span>
+        <span>Início</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="casa">
+        <span class="nav-icon">🏡</span>
+        <span>Casa</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="exercicios">
+        <span class="nav-icon">🧘‍♀️</span>
+        <span>Exercícios</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="cardapio">
+        <span class="nav-icon">🍽️</span>
+        <span>Cardápio</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="estoque">
+        <span class="nav-icon">📦</span>
+        <span>Estoque</span>
+        <span class="nav-badge" id="navAlertBadge" style="display:none;">!</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==========================================
+       MODAIS (ESTILO GAVETA NO CELULAR)
+  =========================================== -->
+
+  <!-- MODAL 1: CONFIGURAR QUINTA-FEIRA DA DIARISTA -->
+  <div class="modal-overlay" id="modalCycleSetup">
+    <div class="modal-box">
+      <div class="card-header">
+        <div class="card-title">🗓️ Quinta-feira da Diarista</div>
+        <button type="button" class="btn btn-sm" data-close-modal="modalCycleSetup">✖</button>
+      </div>
+      <p class="muted" style="margin-bottom:12px;">
+        Informe uma <strong>quinta-feira em que a diarista foi (Dia 1)</strong>. O app sincroniza os 14 dias automaticamente!
+      </p>
+      <div class="form-group">
+        <label>Quinta-feira com diarista (Dia 1):</label>
+        <input type="date" id="inputAnchorThursday" />
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+        <button type="button" class="btn" data-close-modal="modalCycleSetup">Cancelar</button>
+        <button type="button" class="btn primary" id="btnSaveCycleAnchor">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CRIAR / EDITAR TAREFA DOMÉSTICA -->
+  <div class="modal-overlay" id="modalTaskEdit">
+    <div class="modal-box">
+      <div class="card-header">
+        <div class="card-title" id="modalTaskTitle">✏️ Tarefa Doméstica</div>
+        <button type="button" class="btn btn-sm" data-close-modal="modalTaskEdit">✖</button>
+      </div>
+      <div class="form-group">
+        <label>Nome da tarefa:</label>
+        <input type="text" id="taskEditName" placeholder="Ex: Pré-preparo da semana" />
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Nível:</label>
+          <select id="taskEditNivel">
+            <option value="indispensavel">🚨 Indispensável</option>
+            <option value="desejavel">✨ Desejável</option>
+            <option value="pode_esperar">⏳ Pode Esperar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Esforço:</label>
+          <select id="taskEditEsforco">
+            <option value="leve">🟢 Leve</option>
+            <option value="medio">🟡 Médio</option>
+            <option value="pesado">🔴 Pesado</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Micro-etapas (uma por linha):</label>
+        <textarea id="taskEditSteps" rows="4" placeholder="Ex:&#10;Cozinhar frango&#10;Refogar carne&#10;Separar potinhos"></textarea>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px;">
+        <button type="button" class="btn danger btn-sm" id="btnDeleteTaskModal" style="display:none;">🗑️ Excluir</button>
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button type="button" class="btn" data-close-modal="modalTaskEdit">Cancelar</button>
+          <button type="button" class="btn primary" id="btnSaveTaskModal">💾 Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: CRIAR / EDITAR EXERCÍCIO -->
+  <div class="modal-overlay" id="modalExEdit">
+    <div class="modal-box">
+      <div class="card-header">
+        <div class="card-title" id="modalExTitle">🧘‍♀️ Exercício</div>
+        <button type="button" class="btn btn-sm" data-close-modal="modalExEdit">✖</button>
+      </div>
+      <div class="form-group">
+        <label>Nome do exercício:</label>
+        <input type="text" id="exEditName" />
+      </div>
+      <div class="form-group">
+        <label>Equipamento / Grupo:</label>
+        <input type="text" id="exEditEquip" placeholder="Ex: Esteira, Tapete, Faixa..." />
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Local:</label>
+          <select id="exEditCtx">
+            <option value="casa">🏡 Casa</option>
+            <option value="viagem">🧳 Viagem</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Série:</label>
+          <select id="exEditEnergy">
+            <option value="alta">🔋 Completa</option>
+            <option value="baixa">🪫 Leve</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tipo:</label>
+          <select id="exEditCat">
+            <option value="mobilidade">Mobilidade</option>
+            <option value="alongamento">Alongamento</option>
+            <option value="forca">Força</option>
+            <option value="cardio">Cardio</option>
+            <option value="respiracao">Respiração</option>
+            <option value="equilibrio">Equilíbrio</option>
+            <option value="recuperacao">Recuperação</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Instruções:</label>
+        <textarea id="exEditInstr" rows="3"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+        <button type="button" class="btn" data-close-modal="modalExEdit">Cancelar</button>
+        <button type="button" class="btn primary" id="btnSaveExModal">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: ESCOLHER RECEITA PARA O DIA -->
+  <div class="modal-overlay" id="modalPickRecipe">
+    <div class="modal-box">
+      <div class="card-header">
+        <div class="card-title" id="pickModalTitle">Adicionar receita</div>
+        <button type="button" class="btn btn-sm" data-close-modal="modalPickRecipe">✖</button>
+      </div>
+      <div class="form-row-2" style="margin-bottom:10px;">
+        <input type="text" id="pickSearchInput" placeholder="🔎 Buscar..." />
+        <select id="pickMealFilter"></select>
+      </div>
+      <div id="pickRecipeList" style="max-height:58vh;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: NOVA / EDITAR RECEITA -->
+  <div class="modal-overlay" id="modalRecipeEdit">
+    <div class="modal-box">
+      <div class="card-header">
+        <div class="card-title" id="modalRecipeTitle">➕ Receita</div>
+        <button type="button" class="btn btn-sm" data-close-modal="modalRecipeEdit">✖</button>
+      </div>
+      <div class="form-group">
+        <label>Nome da receita:</label>
+        <input type="text" id="nrName" />
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Refeição:</label>
+          <select id="nrMeal"></select>
+        </div>
+        <div class="form-group">
+          <label>Proteína:</label>
+          <select id="nrProtein"></select>
+        </div>
+        <div class="form-group">
+          <label>Tipo:</label>
+          <select id="nrKind"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Ingredientes (um por linha):</label>
+        <textarea id="nrIngredients" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Modo de preparo:</label>
+        <textarea id="nrInstructions" rows="4"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Link (opcional):</label>
+        <input type="text" id="nrLink" placeholder="https://..." />
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+        <button type="button" class="btn" data-close-modal="modalRecipeEdit">Cancelar</button>
+        <button type="button" class="btn primary" id="btnSaveRecipeModal">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: CRIAR / EDITAR ITEM DO ESTOQUE OU REMÉDIO -->
+  <div class="modal-overlay" id="modalInvItem">
+    <div class="modal-box">
+      <div class="card-header">
+        <div class="card-title" id="modalInvTitle">📦 Item do Estoque</div>
+        <button type="button" class="btn btn-sm" data-close-modal="modalInvItem">✖</button>
+      </div>
+      <div class="form-group">
+        <label>Nome do item:</label>
+        <input type="text" id="invItemName" />
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Categoria:</label>
+          <select id="invItemEnv"></select>
+        </div>
+        <div class="form-group">
+          <label>Subgrupo:</label>
+          <input type="text" id="invItemGroup" placeholder="Ex: Frutas, Lavanderia..." />
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Quantidade atual:</label>
+          <input type="number" id="invItemQty" step="any" min="0" value="0" />
+        </div>
+        <div class="form-group">
+          <label>Unidade:</label>
+          <select id="invItemUnit">
+            <option value="UN">UN</option>
+            <option value="comp">comp (comprimidos)</option>
+            <option value="cáps">cáps (cápsulas)</option>
+            <option value="Kg">Kg</option>
+            <option value="g">g</option>
+            <option value="L">L</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Campos extras exclusivos para Monitor de Remédios -->
+      <div id="medExtraFields" style="display:none;background:var(--primary-soft);padding:10px;border-radius:12px;margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:750;font-size:0.82rem;margin-bottom:8px;cursor:pointer;">
+          <input type="checkbox" id="invMedTracked" style="width:18px;height:18px;" />
+          <span>⏰ Monitorar duração automaticamente</span>
+        </label>
+        <div class="form-row-3">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Dose:</label>
+            <input type="number" id="invMedDose" step="any" min="0.1" value="1" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Período:</label>
+            <select id="invMedPeriod">
+              <option value="dia">por dia</option>
+              <option value="semana">por semana</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Alerta (dias):</label>
+            <input type="number" id="invMedAlertDays" min="1" value="7" />
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+        <button type="button" class="btn" data-close-modal="modalInvItem">Cancelar</button>
+        <button type="button" class="btn primary" id="btnSaveInvItem">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./dados.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
