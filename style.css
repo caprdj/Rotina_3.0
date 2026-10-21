@@ -279,8 +279,8 @@ body {
    BARRAS DE ABAS / FILTROS BEM DISTRIBUÍDAS (SEM CORTAR NAS BORDAS)
 ========================= */
 .segmented-bar {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 6px;
   background: var(--primary-soft);
   padding: 6px;
@@ -288,32 +288,66 @@ body {
   margin-bottom: 12px;
 }
 
+.segmented-bar.grid-3col,
+.segmented-bar.grid-2x3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.segmented-bar.grid-2col,
+.segmented-bar.grid-2x2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.segmented-bar.grid-shop-filters {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .seg-btn {
-  flex: 1 1 calc(33.333% - 6px);
-  min-width: 105px;
+  min-width: 0;
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.45);
-  color: #374151;
-  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--text-main);
+  padding: 9px 6px;
   border-radius: 11px;
-  font-size: 0.81rem;
+  font-size: 0.78rem;
   font-weight: 650;
+  line-height: 1.2;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: all 0.12s ease;
 }
 
 .seg-btn:hover {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .seg-btn.active {
   background: #fff;
   color: var(--primary-dark);
-  border-color: rgba(75, 123, 236, 0.3);
+  border-color: rgba(124, 58, 237, 0.35);
   font-weight: 750;
   box-shadow: var(--shadow-sm);
+}
+
+.pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  line-height: 1.25;
+  flex-shrink: 0;
 }
 
 /* =========================
@@ -738,17 +772,21 @@ select:focus, input:focus, textarea:focus {
 .status-pills {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .status-pill {
-  padding: 4px 8px;
+  padding: 5px 9px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  font-size: 0.73rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   background: #f9fafb;
+  color: var(--text-main);
+  white-space: nowrap;
 }
 
 .status-pill.active.ok { background: var(--secondary-soft); border-color: var(--secondary); font-weight: 700; }

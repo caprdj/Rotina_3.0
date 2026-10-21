@@ -43,14 +43,14 @@ const SLOT_DEFS = [
   { key: "ceia", label: "Ceia", emoji: "🌙" },
 ];
 
-// 2. CATEGORIAS DO ESTOQUE (7 CATEGORIAS PRÁTICAS)
+// 2. CATEGORIAS DO ESTOQUE (Nomes curtos e proporcionais para a tela do celular)
 const INVENTORY_ENVS = [
   { id: "hortifruti", label: "🥗 Hortifruti", shopGroup: "feira" },
-  { id: "laticinios", label: "🧀 Geladeira & Ovos", shopGroup: "mercado" },
+  { id: "laticinios", label: "🧀 Geladeira", shopGroup: "mercado" },
   { id: "freezer", label: "❄️ Freezer", shopGroup: "mercado" },
   { id: "despensa", label: "📦 Despensa", shopGroup: "mercado" },
-  { id: "limpeza", label: "🧼 Limpeza & Casa", shopGroup: "mercado" },
-  { id: "cuidados", label: "🧴 Cuidados Pessoais", shopGroup: "farmacia" },
+  { id: "limpeza", label: "🧼 Limpeza", shopGroup: "mercado" },
+  { id: "cuidados", label: "🧴 Cuidados", shopGroup: "farmacia" },
   { id: "remedios", label: "💊 Remédios", shopGroup: "farmacia" }
 ];
 

@@ -97,6 +97,7 @@ function createDefaultState() {
     exDone: {}, // { "1__d1_1": true }
     recipes: deepClone(SEED_RECIPES),
     menuPlan14: Array.from({ length: 14 }, blankMenuDay),
+    directIngredients: [], // ingredientes enviados direto das receitas sem precisar agendar no dia
     inventory: inv,
     cycleHistory: []
   };
@@ -116,6 +117,10 @@ function loadAppState() {
     if (!parsed.version || parsed.version < 3.1) {
       merged.exercisesByDay = deepClone(SEED_EXERCISES_14);
       merged.version = 3.1;
+    }
+
+    if (!Array.isArray(merged.directIngredients)) {
+      merged.directIngredients = [];
     }
 
     // Garante todas as 7 categorias do estoque
@@ -238,14 +243,14 @@ function switchMainView(viewName) {
 
   // Atualiza título no topo
   const viewTitles = {
-    hoje: "Rotina 3.0",
+    hoje: "Vida Fibro",
     casa: "🏡 Casa (14d)",
     exercicios: "🧘‍♀️ Exercícios",
     cardapio: "🍽️ Cardápio",
     estoque: "📦 Estoque"
   };
   const topTitleEl = document.getElementById("topViewTitle");
-  if (topTitleEl) topTitleEl.textContent = viewTitles[viewName] || "Rotina 3.0";
+  if (topTitleEl) topTitleEl.textContent = viewTitles[viewName] || "Vida Fibro";
 
   // A barra de dia do ciclo aparece em Hoje, Casa, Exercícios e Cardápio
   const cycleBar = document.getElementById("sharedCycleBar");
@@ -486,6 +491,9 @@ function renderTodayView() {
       });
     });
   }
+
+  // 6. Histórico de Ciclos (movido para a página Inicial)
+  renderCycleHistoryList();
 }
 
 /* =========================
@@ -1068,9 +1076,31 @@ function renderRecipesDatabaseList() {
         <strong>Ingredientes:</strong> ${(r.ingredients || []).map(escapeHtml).join(" • ")}
       </div>
       ${r.instructions ? `<div class="muted" style="margin-top:4px;white-space:pre-line;"><strong>Modo:</strong> ${escapeHtml(r.instructions)}</div>` : ""}
-      ${r.link ? `<div style="margin-top:4px;"><a href="${escapeHtml(r.link)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:var(--primary);">🔗 Abrir link da receita</a></div>` : ""}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);">
+        <button type="button" class="btn btn-sm soft" data-send-rec-ing="${escapeHtml(r.id)}">
+          🧾 + Enviar p/ Ingredientes
+        </button>
+        ${r.link ? `<a href="${escapeHtml(r.link)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:var(--primary);font-weight:600;">🔗 Abrir link</a>` : ""}
+      </div>
     </div>
   `).join("");
+
+  listEl.querySelectorAll("[data-send-rec-ing]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const rec = state.recipes.find(x => x.id === btn.getAttribute("data-send-rec-ing"));
+      if (!rec) return;
+      if (!Array.isArray(state.directIngredients)) state.directIngredients = [];
+      (rec.ingredients || []).forEach(ing => {
+        const clean = (ing || "").trim();
+        if (clean && !clean.startsWith("#")) {
+          state.directIngredients.push(clean);
+        }
+      });
+      saveState();
+      renderMenuPlanShoppingIngredients();
+      btn.textContent = "✅ Enviado p/ Ingredientes!";
+    });
+  });
 
   listEl.querySelectorAll("[data-fav-rec]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1100,17 +1130,23 @@ function renderRecipesDatabaseList() {
   });
 }
 
-function renderMenuPlanShoppingIngredients() {
-  const box = document.getElementById("menuGeneratedShopContainer");
-  if (!box) return;
-
+function getConsolidatedMenuIngredients() {
   const counts = new Map();
+
+  // 1. Ingredientes enviados diretamente das receitas
+  (state.directIngredients || []).forEach(ing => {
+    const clean = (ing || "").trim();
+    if (!clean || clean.startsWith("#")) return;
+    counts.set(clean, (counts.get(clean) || 0) + 1);
+  });
+
+  // 2. Ingredientes das receitas agendadas nos 14 dias
   (state.menuPlan14 || []).forEach(day => {
     SLOT_DEFS.forEach(s => {
       (day[s.key] || []).forEach(rid => {
         const r = state.recipes.find(x => x.id === rid);
         (r?.ingredients || []).forEach(ing => {
-          const clean = ing.trim();
+          const clean = (ing || "").trim();
           if (!clean || clean.startsWith("#")) return;
           counts.set(clean, (counts.get(clean) || 0) + 1);
         });
@@ -1118,16 +1154,35 @@ function renderMenuPlanShoppingIngredients() {
     });
   });
 
-  const entries = Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  return Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+}
+
+function renderMenuPlanShoppingIngredients() {
+  const box = document.getElementById("menuGeneratedShopContainer");
+  const pill = document.getElementById("ingCountPill");
+  const entries = getConsolidatedMenuIngredients();
+
+  if (pill) {
+    if (entries.length > 0) {
+      pill.style.display = "inline-flex";
+      pill.textContent = String(entries.length);
+    } else {
+      pill.style.display = "none";
+      pill.textContent = "0";
+    }
+  }
+
+  if (!box) return;
+
   if (!entries.length) {
-    box.innerHTML = `<div class="muted">Adicione receitas no planejador dos dias para gerar a soma de ingredientes aqui.</div>`;
+    box.innerHTML = `<div class="muted">Envie ingredientes diretamente de uma receita ("🧾 + Enviar p/ Ingredientes") ou planeje os dias para ver a lista consolidada aqui.</div>`;
     return;
   }
 
   box.innerHTML = entries.map(([ing, qtd]) => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);font-size:0.86rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:0.86rem;">
       <span>${escapeHtml(ing)} ${qtd > 1 ? `<b>(×${qtd})</b>` : ""}</span>
-      <button type="button" class="btn btn-sm soft" data-send-ing-shop="${escapeHtml(ing)}">🛒 Enviar p/ Compras</button>
+      <button type="button" class="btn btn-sm soft" data-send-ing-shop="${escapeHtml(ing)}">🛒 P/ Compras</button>
     </div>
   `).join("");
 
@@ -1146,10 +1201,15 @@ function renderMenuPlanShoppingIngredients() {
 function renderEstoqueView() {
   refreshAllMedsStatus();
 
-  // Botões das 7 categorias
+  if (currentInvEnv === "remedios") {
+    currentInvEnv = "despensa";
+  }
+
+  // Botões das 6 categorias da casa (Remédios já tem aba exclusiva no topo)
+  const houseEnvs = INVENTORY_ENVS.filter(env => env.id !== "remedios");
   const envBar = document.getElementById("invEnvButtonsBar");
   if (envBar) {
-    envBar.innerHTML = INVENTORY_ENVS.map(env => `
+    envBar.innerHTML = houseEnvs.map(env => `
       <button type="button" class="seg-btn ${currentInvEnv === env.id ? "active" : ""}" data-select-env="${env.id}">
         ${env.label}
       </button>
@@ -1163,7 +1223,7 @@ function renderEstoqueView() {
     });
   }
 
-  const envMeta = INVENTORY_ENVS.find(e => e.id === currentInvEnv) || INVENTORY_ENVS[0];
+  const envMeta = houseEnvs.find(e => e.id === currentInvEnv) || houseEnvs[0];
   const titleEl = document.getElementById("invCurrentEnvTitle");
   if (titleEl) titleEl.textContent = envMeta.label;
 
@@ -1943,6 +2003,25 @@ document.addEventListener("DOMContentLoaded", () => {
     state.menuPlan14[dayIdx] = blankMenuDay();
     saveState();
     renderAll();
+  });
+
+  document.getElementById("btnClearDirectIngredients")?.addEventListener("click", () => {
+    if (!state.directIngredients?.length) return;
+    if (!confirm("Limpar os ingredientes enviados avulsos?")) return;
+    state.directIngredients = [];
+    saveState();
+    renderMenuPlanShoppingIngredients();
+  });
+
+  document.getElementById("btnCopyMenuShop")?.addEventListener("click", async () => {
+    const entries = getConsolidatedMenuIngredients();
+    const text = entries.map(([ing, qtd]) => `- ${ing}${qtd > 1 ? ` (×${qtd})` : ""}`).join("\n") || "Nenhum ingrediente na lista.";
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Ingredientes copiados! 📋");
+    } catch {
+      alert(text);
+    }
   });
 
   document.getElementById("btnOpenNewRecipe")?.addEventListener("click", () => openRecipeEditModal(null));

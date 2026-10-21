@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Vida Fibro 3.0 — Rotina, Cardápio & Estoque</title>
+  <title>Vida Fibro — Rotina, Cardápio & Estoque</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <meta name="theme-color" content="#7c3aed" />
   <link rel="manifest" href="./manifest.json" />
@@ -12,21 +12,15 @@
 </head>
 <body>
 
-  <!-- TOPBAR FIXA COM ÍCONE DO APP À ESQUERDA E BOTÃO INÍCIO À DIREITA -->
+  <!-- TOPBAR FIXA LIMPA: Ícone + Vida Fibro à esquerda | Backup e Restaurar à direita -->
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand-group">
-        <img src="./icons/icon-192.png" alt="Rotina" style="width:34px;height:34px;border-radius:10px;object-fit:cover;border:1px solid var(--border);box-shadow:var(--shadow-sm);" />
-        <span class="brand-title" id="topViewTitle">Rotina 3.0</span>
+        <img src="./icons/icon-192.png" alt="Vida Fibro" style="width:34px;height:34px;border-radius:10px;object-fit:cover;border:1px solid var(--border);box-shadow:var(--shadow-sm);" />
+        <span class="brand-title" id="topViewTitle">Vida Fibro</span>
       </div>
 
       <div class="top-actions">
-        <button type="button" class="btn-icon-top" id="btnTopHome" title="Voltar para a Página Inicial">
-          🏠
-        </button>
-        <button type="button" class="btn-icon-top" id="btnOpenCycleSetup" title="Sincronizar quinta-feira da diarista">
-          🗓️ <span id="topCycleBadge">D1 (5ª)</span>
-        </button>
         <button type="button" class="btn-icon-top" id="btnGlobalBackup" title="Baixar backup completo">
           📤
         </button>
@@ -38,22 +32,17 @@
     </div>
   </header>
 
-  <!-- CONTEÚDO PRINCIPAL (LARGURA MOBILE-FIRST) -->
+  <!-- CONTEÚDO PRINCIPAL -->
   <main class="app-container">
 
-    <!-- BARRA COMPARTILHADA DE DIA DO CICLO E MONITOR DE ENERGIA -->
+    <!-- BARRA COMPARTILHADA DO DIA DA QUINZENA (SEM LINHA DE ENERGIA) -->
     <section class="cycle-control-bar" id="sharedCycleBar">
       <div class="cycle-row-top">
         <select id="globalDaySelect" aria-label="Selecionar dia do ciclo"></select>
         <button type="button" class="btn btn-sm soft" id="btnGoTodayCycle">Hoje</button>
-      </div>
-
-      <div class="cycle-row-bottom">
-        <span class="muted" style="font-weight:700;">Energia do dia:</span>
-        <div class="energy-toggle-group">
-          <button type="button" class="btn btn-sm" id="btnEnergyAlta" data-energy-set="alta">🔋 Alta</button>
-          <button type="button" class="btn btn-sm" id="btnEnergyBaixa" data-energy-set="baixa">🪫 Baixa</button>
-        </div>
+        <button type="button" class="btn-icon-top" id="btnOpenCycleSetup" title="Sincronizar quinta-feira da diarista" style="width:36px;padding:0;">
+          🗓️
+        </button>
       </div>
     </section>
 
@@ -64,12 +53,12 @@
       <!-- Alertas de Remédios acabando -->
       <div id="todayMedAlerts"></div>
 
-      <!-- Grade de Atalhos Rápidos (Estilo Página Inicial) -->
+      <!-- Grade de Atalhos Rápidos -->
       <div class="home-nav-grid">
         <button type="button" class="home-tile" data-JumpView="casa">
           <div class="home-tile-icon">🏡</div>
           <div class="home-tile-title">Casa (14 dias)</div>
-          <div class="home-tile-sub">Tarefas em 3 níveis e micro-etapas</div>
+          <div class="home-tile-sub">Tarefas em 3 níveis e etapas</div>
         </button>
 
         <button type="button" class="home-tile" data-JumpView="exercicios">
@@ -81,13 +70,13 @@
         <button type="button" class="home-tile" data-JumpView="cardapio">
           <div class="home-tile-icon">🍽️</div>
           <div class="home-tile-title">Cardápio</div>
-          <div class="home-tile-sub">108 receitas & plano do dia</div>
+          <div class="home-tile-sub">Receitas, dia e ingredientes</div>
         </button>
 
         <button type="button" class="home-tile" data-JumpView="estoque">
           <div class="home-tile-icon">📦</div>
           <div class="home-tile-title">Estoque & Remédios</div>
-          <div class="home-tile-sub">Monitor de caixas & compras</div>
+          <div class="home-tile-sub">Controle da casa e compras</div>
         </button>
       </div>
 
@@ -124,6 +113,18 @@
         </div>
         <div id="todayFreezerSummary"></div>
       </div>
+
+      <!-- Histórico de Ciclos movido para a Página Inicial -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📚 Histórico de Ciclos</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm soft" id="btnRestartCycle">🌀 Nova Quinzena</button>
+            <button type="button" class="btn btn-sm" id="btnDownloadHistoryTxt">⬇️ TXT</button>
+          </div>
+        </div>
+        <div id="cycleHistoryBox"></div>
+      </div>
     </section>
 
     <!-- ==========================================
@@ -139,9 +140,9 @@
           <button type="button" class="btn primary btn-sm" id="btnNewTask">+ Nova</button>
         </div>
 
-        <!-- Filtro deslizável de nível -->
-        <div class="segmented-bar" id="casaLevelFilterBar">
-          <button type="button" class="seg-btn active" data-level-filter="all">Todos (3 níveis)</button>
+        <!-- Filtro de nível bem distribuído em grade 2x2 -->
+        <div class="segmented-bar grid-2x2" id="casaLevelFilterBar">
+          <button type="button" class="seg-btn active" data-level-filter="all">📋 Todos (3 níveis)</button>
           <button type="button" class="seg-btn" data-level-filter="indispensavel">🚨 Indispensável</button>
           <button type="button" class="seg-btn" data-level-filter="desejavel">✨ Desejável</button>
           <button type="button" class="seg-btn" data-level-filter="pode_esperar">⏳ Pode Esperar</button>
@@ -162,24 +163,13 @@
         <div id="flexListContainer"></div>
       </div>
 
-      <!-- Estatísticas da Quinzena & Histórico -->
+      <!-- Estatísticas da Quinzena -->
       <div class="card">
         <div class="card-header">
           <div class="card-title">📊 Progresso da Quinzena</div>
           <span class="badge primary" id="casaCyclePctBadge">0%</span>
         </div>
         <div id="casaStatsBox"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">📚 Histórico de Ciclos</div>
-          <div style="display:flex;gap:6px;">
-            <button type="button" class="btn btn-sm soft" id="btnRestartCycle">🌀 Nova Quinzena</button>
-            <button type="button" class="btn btn-sm" id="btnDownloadHistoryTxt">⬇️ TXT</button>
-          </div>
-        </div>
-        <div id="cycleHistoryBox"></div>
       </div>
     </section>
 
@@ -191,19 +181,19 @@
         <div class="card-header">
           <div>
             <div class="card-title">🧘‍♀️ Exercícios do Dia</div>
-            <div class="muted">Escolha o local e a série (Completa ou Leve).</div>
+            <div class="muted">Toque no + para abrir a descrição de cada exercício.</div>
           </div>
           <button type="button" class="btn primary btn-sm" id="btnNewExercise">+ Novo</button>
         </div>
 
-        <div class="segmented-bar" style="margin-bottom:8px;">
+        <div class="segmented-bar grid-2col" style="margin-bottom:8px;">
           <button type="button" class="seg-btn active" data-ex-ctx="casa">🏡 Em Casa</button>
           <button type="button" class="seg-btn" data-ex-ctx="viagem">🧳 Em Viagem</button>
         </div>
 
-        <div class="segmented-bar">
-          <button type="button" class="seg-btn active" data-ex-energy="alta">🔋 Série Completa (Alta)</button>
-          <button type="button" class="seg-btn" data-ex-energy="baixa">🪫 Série Leve (Baixa)</button>
+        <div class="segmented-bar grid-2col">
+          <button type="button" class="seg-btn active" data-ex-energy="alta">🔋 Série Completa</button>
+          <button type="button" class="seg-btn" data-ex-energy="baixa">🪫 Série Leve</button>
         </div>
 
         <div id="exercisesListContainer"></div>
@@ -222,10 +212,10 @@
          ABA 4: 🍽️ CARDÁPIO & RECEITAS
     =========================================== -->
     <section id="view-cardapio" class="main-view">
-      <div class="segmented-bar">
+      <div class="segmented-bar grid-3col">
         <button type="button" class="seg-btn active" data-menu-sub="planejar">🗓️ Dia</button>
-        <button type="button" class="seg-btn" data-menu-sub="receitas">📖 Receitas (108)</button>
-        <button type="button" class="seg-btn" data-menu-sub="ingredientes">🧾 Ingredientes</button>
+        <button type="button" class="seg-btn" data-menu-sub="receitas">📖 Receitas</button>
+        <button type="button" class="seg-btn" data-menu-sub="ingredientes">🧾 Ingredientes <span id="ingCountPill" class="pill-count" style="display:none;">0</span></button>
       </div>
 
       <!-- Sub-aba 4.1: Planejar Dia -->
@@ -275,7 +265,7 @@
             </div>
           </div>
 
-          <div style="display:flex;gap:8px;margin-top:10px;">
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button type="button" class="btn soft btn-sm" id="btnResetRecFilters">Limpar filtros</button>
             <button type="button" class="btn btn-sm" id="btnImportRecipesJson">📥 Importar JSON</button>
           </div>
@@ -290,13 +280,17 @@
         </div>
       </div>
 
-      <!-- Sub-aba 4.3: Ingredientes do Plano -->
+      <!-- Sub-aba 4.3: Ingredientes (Do Plano + Enviados diretamente das Receitas) -->
       <div id="menuSub-ingredientes" style="display:none;">
         <div class="card">
           <div class="card-header">
             <div>
-              <div class="card-title">🧾 Ingredientes do Plano (14d)</div>
-              <div class="muted">Envie qualquer ingrediente direto para sua Lista de Compras.</div>
+              <div class="card-title">🧾 Lista de Ingredientes</div>
+              <div class="muted">Reúne os ingredientes enviados direto das receitas e os do cardápio planejado.</div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button type="button" class="btn btn-sm" id="btnCopyMenuShop">📋 Copiar</button>
+              <button type="button" class="btn btn-sm danger" id="btnClearDirectIngredients">Limpar avulsos</button>
             </div>
           </div>
           <div id="menuGeneratedShopContainer"></div>
@@ -308,16 +302,16 @@
          ABA 5: 📦 ESTOQUE, REMÉDIOS & COMPRAS
     =========================================== -->
     <section id="view-estoque" class="main-view">
-      <div class="segmented-bar">
+      <!-- Barra principal do módulo Estoque: 3 colunas bem proporcionadas -->
+      <div class="segmented-bar grid-3col">
         <button type="button" class="seg-btn active" data-inv-sub="estoque">📦 Estoque</button>
         <button type="button" class="seg-btn" data-inv-sub="remedios">💊 Remédios</button>
-        <button type="button" class="seg-btn" data-inv-sub="compras">🛒 Compras <span id="shopTabCount" class="badge primary" style="margin-left:3px;">0</span></button>
+        <button type="button" class="seg-btn" data-inv-sub="compras">🛒 Compras <span id="shopTabCount" class="pill-count">0</span></button>
       </div>
 
-      <!-- Sub-aba 5.1: Estoque Geral por Categoria -->
+      <!-- Sub-aba 5.1: Estoque Geral por Categoria (6 categorias da casa, sem duplicar Remédios) -->
       <div id="invSub-estoque">
-        <!-- Barra deslizável com as 7 categorias -->
-        <div class="segmented-bar" id="invEnvButtonsBar"></div>
+        <div class="segmented-bar grid-2x3" id="invEnvButtonsBar"></div>
 
         <div class="card">
           <div class="card-header">
@@ -344,7 +338,7 @@
               <div class="card-title">💊 Monitor de Remédios</div>
               <div class="muted">Desconta a dose automaticamente a cada dia e alerta quando estiver acabando.</div>
             </div>
-            <button type="button" class="btn primary btn-sm" id="btnAddNewMed">➕ Remédio</button>
+            <button type="button" class="btn primary btn-sm" id="btnAddNewMed">+ Remédio</button>
           </div>
           <div id="medMonitorContainer"></div>
         </div>
@@ -352,9 +346,9 @@
 
       <!-- Sub-aba 5.3: Lista de Compras Unificada -->
       <div id="invSub-compras" style="display:none;">
-        <div class="segmented-bar" id="shopFilterBar">
+        <div class="segmented-bar grid-shop-filters" id="shopFilterBar">
           <button type="button" class="seg-btn active" data-shop-filter="all">📝 Geral</button>
-          <button type="button" class="seg-btn" data-shop-filter="hoje">🛒 Compra do Dia</button>
+          <button type="button" class="seg-btn" data-shop-filter="hoje">🛒 Dia</button>
           <button type="button" class="seg-btn" data-shop-filter="feira">🥗 Feira</button>
           <button type="button" class="seg-btn" data-shop-filter="mercado">🏪 Mercado</button>
           <button type="button" class="seg-btn" data-shop-filter="farmacia">💊 Farmácia</button>
@@ -406,7 +400,7 @@
   </nav>
 
   <!-- ==========================================
-       MODAIS (ESTILO GAVETA NO CELULAR)
+       MODAIS
   =========================================== -->
 
   <!-- MODAL 1: CONFIGURAR QUINTA-FEIRA DA DIARISTA -->
