@@ -4,24 +4,24 @@
 ========================= */
 
 :root {
-  --bg: #f4f6fb;
+  --bg: #f8f5fc;
   --card-bg: #ffffff;
-  --primary: #4b7bec;
-  --primary-dark: #3867d6;
-  --primary-soft: #eef2ff;
-  --secondary: #20bf6b;
-  --secondary-soft: #e7f9ef;
-  --warning: #f7b731;
-  --warning-soft: #fff8e6;
-  --danger: #eb3b5a;
-  --danger-soft: #ffe8ec;
-  --text-main: #1f2937;
-  --text-muted: #6b7280;
-  --border: #e5e7eb;
+  --primary: #7c3aed;
+  --primary-dark: #5b21b6;
+  --primary-soft: #f3e8ff;
+  --secondary: #10b981;
+  --secondary-soft: #e6f8f1;
+  --warning: #f59e0b;
+  --warning-soft: #fef5e7;
+  --danger: #e11d48;
+  --danger-soft: #ffe4e9;
+  --text-main: #2e1065;
+  --text-muted: #6b5b84;
+  --border: #e9d5ff;
   --radius: 18px;
   --radius-sm: 12px;
-  --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
-  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow: 0 6px 20px rgba(109, 40, 217, 0.08);
+  --shadow-sm: 0 2px 8px rgba(109, 40, 217, 0.06);
   --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -489,19 +489,19 @@ select:focus, input:focus, textarea:focus {
 }
 
 .tier-block.indispensavel {
-  background: #f8faff;
-  border-color: rgba(75, 123, 236, 0.3);
+  background: #faf5ff;
+  border-color: rgba(124, 58, 237, 0.35);
 }
 
 .tier-block.desejavel {
-  background: #fcfdfd;
-  border-color: #e2e8f0;
+  background: #fdfaff;
+  border-color: #e9d5ff;
 }
 
 .tier-block.pode_esperar {
-  background: #fafafa;
+  background: #faf8fc;
   border-style: dashed;
-  border-color: #d1d5db;
+  border-color: #d8b4fe;
 }
 
 .tier-header {

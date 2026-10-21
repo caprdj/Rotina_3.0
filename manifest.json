@@ -3,8 +3,8 @@
   "short_name": "Vida Fibro",
   "start_url": "./index.html",
   "display": "standalone",
-  "theme_color": "#4b7bec",
-  "background_color": "#f4f6fb",
+  "theme_color": "#7c3aed",
+  "background_color": "#f8f5fc",
   "icons": [
     {
       "src": "./icons/icon-192.png",
