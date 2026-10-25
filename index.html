@@ -47,74 +47,34 @@
     </section>
 
     <!-- ==========================================
-         ABA 1: 🏠 PÁGINA INICIAL & RESUMO DE HOJE
+         ABA 1: 🏠 PÁGINA INICIAL (LEVE, ACOLHEDORA & ANDAMENTO DA QUINZENA)
     =========================================== -->
     <section id="view-hoje" class="main-view active">
-      <!-- Alertas de Remédios acabando -->
+      <!-- Alertas de Remédios acabando (só aparece se houver alerta) -->
       <div id="todayMedAlerts"></div>
 
-      <!-- Grade de Atalhos Rápidos -->
-      <div class="home-nav-grid">
-        <button type="button" class="home-tile" data-JumpView="casa">
-          <div class="home-tile-icon">🏡</div>
-          <div class="home-tile-title">Casa (14 dias)</div>
-          <div class="home-tile-sub">Tarefas em 3 níveis e etapas</div>
-        </button>
-
-        <button type="button" class="home-tile" data-JumpView="exercicios">
-          <div class="home-tile-icon">🧘‍♀️</div>
-          <div class="home-tile-title">Exercícios</div>
-          <div class="home-tile-sub">Séries em Casa ou Viagem</div>
-        </button>
-
-        <button type="button" class="home-tile" data-JumpView="cardapio">
-          <div class="home-tile-icon">🍽️</div>
-          <div class="home-tile-title">Cardápio</div>
-          <div class="home-tile-sub">Receitas, dia e ingredientes</div>
-        </button>
-
-        <button type="button" class="home-tile" data-JumpView="estoque">
-          <div class="home-tile-icon">📦</div>
-          <div class="home-tile-title">Estoque & Remédios</div>
-          <div class="home-tile-sub">Controle da casa e compras</div>
-        </button>
+      <!-- Card 1: Frase / Pílula de Cuidado sobre Fibromialgia -->
+      <div class="card" style="background:linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%);border-color:#d8b4fe;">
+        <div class="card-header" style="margin-bottom:6px;">
+          <div class="card-title" style="color:var(--primary-dark);">🦋 Lembrete de Cuidado</div>
+          <button type="button" class="btn btn-sm soft" id="btnNextFibroQuote" title="Ver outra mensagem">✨ Outra frase</button>
+        </div>
+        <div id="fibroQuoteBox" style="font-size:0.92rem;line-height:1.45;color:var(--text-main);font-weight:500;"></div>
       </div>
 
-      <!-- Painel Resumo do Dia Atual -->
+      <!-- Card 2: Andamento Geral da Quinzena -->
       <div class="card">
         <div class="card-header">
-          <div class="card-title">🏡 Tarefas de Hoje</div>
-          <button type="button" class="btn btn-sm soft" data-JumpView="casa">Ver 3 níveis →</button>
+          <div>
+            <div class="card-title">📊 Andamento da Quinzena</div>
+            <div class="muted" id="homeCycleSubtitle">Acompanhamento leve do seu ciclo de 14 dias</div>
+          </div>
+          <span class="badge primary" id="homeCycleDayBadge">Dia 1/14</span>
         </div>
-        <div class="muted" id="todayDomesticSubtitle" style="margin-bottom:8px;"></div>
-        <div id="todayDomesticSummary"></div>
+        <div id="homeQuinzenaOverview"></div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🧘‍♀️ Movimento de Hoje</div>
-          <button type="button" class="btn btn-sm soft" data-JumpView="exercicios">Ver série →</button>
-        </div>
-        <div id="todayExerciseSummary"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🍽️ Refeições de Hoje</div>
-          <button type="button" class="btn btn-sm soft" data-JumpView="cardapio">Planejar →</button>
-        </div>
-        <div id="todayMenuSummary"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🧊 Prontos no Freezer (Salva-vidas)</div>
-          <button type="button" class="btn btn-sm soft" data-JumpView="estoque">Abrir Estoque →</button>
-        </div>
-        <div id="todayFreezerSummary"></div>
-      </div>
-
-      <!-- Histórico de Ciclos movido para a Página Inicial -->
+      <!-- Card 3: Histórico de Ciclos -->
       <div class="card">
         <div class="card-header">
           <div class="card-title">📚 Histórico de Ciclos</div>
@@ -280,17 +240,17 @@
         </div>
       </div>
 
-      <!-- Sub-aba 4.3: Ingredientes (Do Plano + Enviados diretamente das Receitas) -->
+      <!-- Sub-aba 4.3: Ingredientes (Apenas os enviados pelo botão Enviar p/ Ingredientes) -->
       <div id="menuSub-ingredientes" style="display:none;">
         <div class="card">
           <div class="card-header">
             <div>
               <div class="card-title">🧾 Lista de Ingredientes</div>
-              <div class="muted">Reúne os ingredientes enviados direto das receitas e os do cardápio planejado.</div>
+              <div class="muted">Preenchida apenas quando você clica em "🧾 + Enviar p/ Ingredientes" nas receitas.</div>
             </div>
             <div style="display:flex;gap:6px;">
               <button type="button" class="btn btn-sm" id="btnCopyMenuShop">📋 Copiar</button>
-              <button type="button" class="btn btn-sm danger" id="btnClearDirectIngredients">Limpar avulsos</button>
+              <button type="button" class="btn btn-sm danger" id="btnClearDirectIngredients">Limpar lista</button>
             </div>
           </div>
           <div id="menuGeneratedShopContainer"></div>
@@ -627,9 +587,9 @@
       <div id="medExtraFields" style="display:none;background:var(--primary-soft);padding:10px;border-radius:12px;margin-bottom:10px;">
         <label style="display:flex;align-items:center;gap:6px;font-weight:750;font-size:0.82rem;margin-bottom:8px;cursor:pointer;">
           <input type="checkbox" id="invMedTracked" style="width:18px;height:18px;" />
-          <span>⏰ Monitorar duração automaticamente</span>
+          <span>⏰ Uso contínuo (descontar dose automaticamente)</span>
         </label>
-        <div class="form-row-3">
+        <div class="form-row-3" id="medDoseRow">
           <div class="form-group" style="margin-bottom:0;">
             <label>Dose:</label>
             <input type="number" id="invMedDose" step="any" min="0.1" value="1" />

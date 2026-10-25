@@ -1,5 +1,5 @@
 // sw.js – Service Worker unificado e leve para Vida Fibro 3.0
-const CACHE_NAME = "vida-fibro-v3.5";
+const CACHE_NAME = "vida-fibro-v3.6";
 
 const OFFLINE_URLS = [
   "./",

@@ -105,6 +105,11 @@ function createDefaultState() {
 
 let state = loadAppState();
 
+function isSporadicGroupName(groupName) {
+  const norm = String(groupName || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return norm.includes("esporadico") || norm.includes("sos") || norm.includes("eventual");
+}
+
 function loadAppState() {
   try {
     const raw = localStorage.getItem(APP_STORAGE_KEY);
@@ -127,6 +132,13 @@ function loadAppState() {
     INVENTORY_ENVS.forEach(env => {
       if (!Array.isArray(merged.inventory?.[env.id])) {
         merged.inventory[env.id] = deepClone(SEED_INVENTORY[env.id] || []);
+      }
+    });
+
+    // Corrige automaticamente remédios cadastrados no subgrupo "Uso Esporádico" que estavam como uso contínuo
+    (merged.inventory.remedios || []).forEach(med => {
+      if (isSporadicGroupName(med.group)) {
+        med.tracked = false;
       }
     });
 
@@ -308,13 +320,41 @@ function renderTopHeaderAndCycleBar() {
 }
 
 /* =========================
-   ABA 1: ☀️ VISÃO DE HOJE
+   ABA 1: 🏠 PÁGINA INICIAL (LEVE, REFLEXÕES FIBRO & ANDAMENTO DA QUINZENA)
 ========================= */
+const FIBRO_QUOTES = [
+  "💜 Na fibromialgia, respeitar o seu limite hoje é o que garante energia para o amanhã. Fazer em micro-etapas também é avançar.",
+  "🦋 Pacing (manejo de energia): descansar antes da exaustão não é desistir — é uma estratégia inteligente de proteção do seu sistema nervoso.",
+  "🌿 Movimento gentil é remédio: 5 minutos de respiração ou alongamento suave já sinalizam segurança para o corpo e ajudam a modular a dor.",
+  "✨ Dias de bateria baixa fazem parte do ciclo. Nesses dias, focar apenas no Nível 1 (Indispensável) já é uma vitória completa.",
+  "💜 Seu valor não é medido pela quantidade de tarefas riscadas. Uma casa funcional existe para acolher você, e não para cobrar perfeição.",
+  "🍵 Alimentação anti-inflamatória e comida pronta no freezer são seus aliados: menos tempo em pé na cozinha significa mais energia preservada.",
+  "🦋 Na fibromialgia, o sistema nervoso fica em alerta aumentado. Pausas conscientes e expiração longa ajudam o corpo a 'desarmar'.",
+  "🌸 Dividir uma tarefa em 3 partes pequenas evita o efeito 'montanha-russa' (fazer tudo num dia bom e sentir dor intensa no dia seguinte).",
+  "💜 Celebre o que foi possível hoje. Cada micro-etapa concluída ou reagendada com consciência mostra que você está no comando do seu ritmo.",
+  "🧘‍♀️ Rigidez matinal pede gentileza: comece o dia aquecendo as articulações devagar, sem pressa e sem cobrança.",
+  "🌿 Hidratação, sono reparador e pequenas pausas silenciosas ao longo do dia reduzem a sobrecarga sensorial da fibromialgia.",
+  "✨ Reagendar o que 'Pode Esperar' não é atraso — é sabedoria de quem conhece o próprio corpo e cuida dele com carinho.",
+  "💜 Você não precisa dar conta de tudo de uma vez. A quinzena tem 14 dias justamente para que o ritmo seja leve e sustentável.",
+  "🦋 Ouça os sussurros do seu corpo para não precisar ouvir seus gritos. Uma pausa de 10 minutos pode mudar o restante do seu dia."
+];
+
+let currentQuoteIdx = null;
+
 function renderTodayView() {
   const day = state.selectedDay || 1;
   const medAlerts = refreshAllMedsStatus();
 
-  // 1. Alertas de remédios acabando
+  // 1. Frase / Lembrete sobre Fibromialgia
+  if (currentQuoteIdx === null) {
+    currentQuoteIdx = (day - 1) % FIBRO_QUOTES.length;
+  }
+  const quoteEl = document.getElementById("fibroQuoteBox");
+  if (quoteEl) {
+    quoteEl.textContent = FIBRO_QUOTES[currentQuoteIdx % FIBRO_QUOTES.length];
+  }
+
+  // 2. Alertas de remédios acabando (só aparece se houver necessidade de reposição)
   const alertsEl = document.getElementById("todayMedAlerts");
   if (alertsEl) {
     if (!medAlerts.length) {
@@ -350,149 +390,85 @@ function renderTodayView() {
     }
   }
 
-  // 2. Tarefas de Hoje (Resumo rápido)
-  const dayObj = state.domesticTasksByDay?.[day] || { title: `Dia ${day}`, tasks: [] };
-  const subEl = document.getElementById("todayDomesticSubtitle");
-  if (subEl) subEl.textContent = dayObj.title || `Dia ${day} (${getWeekdayShort(day)})`;
+  // 3. Andamento Geral da Quinzena (leve, sem repetir o conteúdo das abas)
+  const cycleBadge = document.getElementById("homeCycleDayBadge");
+  const cycleSub = document.getElementById("homeCycleSubtitle");
+  const overviewBox = document.getElementById("homeQuinzenaOverview");
 
-  const domSummaryEl = document.getElementById("todayDomesticSummary");
-  if (domSummaryEl) {
-    const tasks = dayObj.tasks || [];
-    const indisp = tasks.filter(t => t.nivel === "indispensavel");
-    const desej = tasks.filter(t => t.nivel === "desejavel");
-    const podeEsp = tasks.filter(t => t.nivel === "pode_esperar");
+  const weekNum = day <= 7 ? 1 : 2;
+  const daysUntilCleaner = 14 - day;
+  const cyclePct = Math.round((day / 14) * 100);
 
-    const countDone = (arr) => arr.filter(t => isTaskFullyDone(t)).length;
+  if (cycleBadge) {
+    cycleBadge.textContent = `Dia ${day}/14 • Sem ${weekNum}`;
+  }
+  if (cycleSub) {
+    cycleSub.textContent = day === 1
+      ? "Quinta-feira da diarista (início da quinzena)"
+      : day === 14
+      ? "Véspera da diarista (último dia do ciclo)"
+      : `Faltam ${daysUntilCleaner} dia(s) para a próxima quinta da diarista`;
+  }
 
-    let html = `
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-        <span class="badge primary">🚨 Indispensáveis: ${countDone(indisp)}/${indisp.length}</span>
-        <span class="badge">✨ Desejáveis: ${countDone(desej)}/${desej.length}</span>
-        <span class="badge">⏳ Pode esperar: ${countDone(podeEsp)}/${podeEsp.length}</span>
+  if (overviewBox) {
+    const casaSt = computeCasaCycleStats();
+    const exSt = computeExerciseStats();
+
+    // Contagem rápida de compras e refeições prontas no freezer
+    let shopMissing = 0;
+    INVENTORY_ENVS.forEach(env => {
+      const items = state.inventory?.[env.id] || [];
+      shopMissing += items.filter(it => it.status === "low" || it.status === "out").length;
+    });
+    const readyPortions = (state.inventory?.freezer || [])
+      .filter(it => (it.group || "").includes("Comida Pronta"))
+      .reduce((acc, it) => acc + (parseFloat(it.qty) || 0), 0);
+
+    overviewBox.innerHTML = `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">
+          <span class="muted">🗓️ Tempo da Quinzena (${getWeekdayShort(day)})</span>
+          <strong>Dia ${day} de 14 (${cyclePct}%)</strong>
+        </div>
+        <div class="bar"><div class="bar-fill" style="width:${cyclePct}%"></div></div>
       </div>
-    `;
 
-    // Lista as indispensáveis direto aqui com suas micro-etapas para facilitar
-    html += indisp.map(t => renderTaskCardHTML(day, t, true)).join("");
-    if (desej.length) {
-      html += `<div class="group-heading">✨ Desejáveis de Hoje (${countDone(desej)}/${desej.length})</div>`;
-      html += desej.map(t => renderTaskCardHTML(day, t, true)).join("");
-    }
-
-    domSummaryEl.innerHTML = html;
-    wireTaskCardEvents(domSummaryEl, day);
-  }
-
-  // 3. Exercícios de Hoje (Resumo rápido na energia selecionada)
-  const exSumEl = document.getElementById("todayExerciseSummary");
-  if (exSumEl) {
-    const curEnergy = state.energyLog?.[day] || "alta";
-    const exList = (state.exercisesByDay?.[day] || []).filter(
-      ex => ex.contexto === "casa" && ex.energia === curEnergy
-    );
-
-    if (!exList.length) {
-      exSumEl.innerHTML = `<div class="muted">Nenhum exercício para esta combinação.</div>`;
-    } else {
-      exSumEl.innerHTML = `
-        <div class="muted" style="margin-bottom:8px;">Mostrando série <b>${curEnergy === "alta" ? "🔋 Completa (Alta)" : "🪫 Leve (Baixa)"}</b> em Casa:</div>
-        ${exList.map(ex => {
-          const done = !!state.exDone?.[`${day}__${ex.id}`];
-          const hasInstr = !!(ex.instrucao && ex.instrucao.trim());
-          return `
-            <div class="task-card ${done ? "done-all" : ""}" style="padding:8px 10px;">
-              <div class="task-top">
-                <label class="task-main-check" style="cursor:pointer;">
-                  <input type="checkbox" data-today-ex="${escapeHtml(ex.id)}" ${done ? "checked" : ""} />
-                  <div>
-                    <div class="task-name">${escapeHtml(ex.nome)}</div>
-                    <div class="muted">${escapeHtml(ex.equipamento || "Sem equipamento")}</div>
-                  </div>
-                </label>
-                ${hasInstr ? `<button type="button" class="icon-btn" data-today-ex-info="${escapeHtml(ex.id)}" style="font-weight:800;color:var(--primary-dark);background:var(--primary-soft);">+</button>` : ""}
-              </div>
-              ${hasInstr ? `<div id="today-ex-info-${escapeHtml(ex.id)}" class="muted" style="display:none;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);line-height:1.4;">${escapeHtml(ex.instrucao)}</div>` : ""}
-            </div>
-          `;
-        }).join("")}
-      `;
-      exSumEl.querySelectorAll("[data-today-ex-info]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-today-ex-info");
-          const el = document.getElementById(`today-ex-info-${id}`);
-          if (!el) return;
-          const vis = el.style.display === "block";
-          el.style.display = vis ? "none" : "block";
-          btn.textContent = vis ? "+" : "−";
-        });
-      });
-      exSumEl.querySelectorAll("[data-today-ex]").forEach(cb => {
-        cb.addEventListener("change", () => {
-          const exId = cb.getAttribute("data-today-ex");
-          state.exDone[`${day}__${exId}`] = cb.checked;
-          saveState();
-          renderAll();
-        });
-      });
-    }
-  }
-
-  // 4. Cardápio de Hoje
-  const menuSumEl = document.getElementById("todayMenuSummary");
-  if (menuSumEl) {
-    const dayMenu = state.menuPlan14?.[day - 1] || blankMenuDay();
-    const filledSlots = SLOT_DEFS.filter(s => (dayMenu[s.key] || []).length > 0);
-
-    if (!filledSlots.length) {
-      menuSumEl.innerHTML = `
-        <div class="muted">Nenhuma refeição planejada para o Dia ${day} ainda.</div>
-      `;
-    } else {
-      menuSumEl.innerHTML = filledSlots.map(s => {
-        const names = (dayMenu[s.key] || []).map(rid => {
-          const r = state.recipes.find(x => x.id === rid);
-          return r ? escapeHtml(r.name) : "";
-        }).filter(Boolean).join(" • ");
-        return `
-          <div style="padding:6px 0;border-bottom:1px dashed var(--border);font-size:0.86rem;">
-            <strong>${s.emoji} ${s.label}:</strong> ${names}
-          </div>
-        `;
-      }).join("");
-    }
-  }
-
-  // 5. Prontos no Freezer (Salva-vidas)
-  const frzEl = document.getElementById("todayFreezerSummary");
-  if (frzEl) {
-    const readyItems = (state.inventory?.freezer || []).filter(
-      it => (it.group || "").includes("Comida Pronta")
-    );
-    frzEl.innerHTML = readyItems.map(it => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--border);font-size:0.86rem;">
-        <span>${escapeHtml(it.name)}</span>
-        <div class="qty-controls">
-          <button type="button" class="qty-btn" data-frz-adj="${escapeHtml(it.id)}" data-delta="-1">−</button>
-          <span style="min-width:48px;text-align:center;font-weight:700;">${it.qty || 0} ${escapeHtml(it.unit || "UN")}</span>
-          <button type="button" class="qty-btn" data-frz-adj="${escapeHtml(it.id)}" data-delta="1">+</button>
+      <div style="margin-bottom:14px;padding-top:10px;border-top:1px dashed var(--border);">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">
+          <span class="muted">🏡 Casa (Micro-etapas na quinzena)</span>
+          <strong>${casaSt.counts.stepsDone}/${casaSt.counts.stepsTotal} (${casaSt.pctSteps}%)</strong>
+        </div>
+        <div class="bar"><div class="bar-fill" style="width:${casaSt.pctSteps}%"></div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          <span class="badge primary">🚨 Indispensáveis: ${casaSt.counts.indispensavel.done}/${casaSt.counts.indispensavel.total} (${casaSt.pctInd}%)</span>
+          <span class="badge">✨ Desejáveis: ${casaSt.counts.desejavel.done}/${casaSt.counts.desejavel.total} (${casaSt.pctDes}%)</span>
+          <span class="badge">⏳ Pode esperar: ${casaSt.counts.pode_esperar.done}/${casaSt.counts.pode_esperar.total}</span>
+          ${(state.flexList || []).length > 0 ? `<span class="badge esforco-medio">🗂 Reagendadas: ${state.flexList.length}</span>` : ""}
         </div>
       </div>
-    `).join("");
 
-    frzEl.querySelectorAll("[data-frz-adj]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-frz-adj");
-        const delta = parseInt(btn.getAttribute("data-delta"), 10);
-        const item = (state.inventory.freezer || []).find(x => x.id === id);
-        if (!item) return;
-        item.qty = Math.max(0, (item.qty || 0) + delta);
-        saveState();
-        renderAll();
-      });
-    });
+      <div style="margin-bottom:14px;padding-top:10px;border-top:1px dashed var(--border);">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">
+          <span class="muted">🧘‍♀️ Movimento & Autocuidado</span>
+          <strong>${exSt.daysWithMove} de 14 dias (${exSt.pct}%)</strong>
+        </div>
+        <div class="bar"><div class="bar-fill" style="width:${exSt.pct}%"></div></div>
+        <div class="muted" style="margin-top:6px;">
+          ${exSt.totalSessions} prática(s) concluída(s) até agora nesta quinzena.
+        </div>
+      </div>
+
+      <div style="padding-top:10px;border-top:1px dashed var(--border);display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="badge ${medAlerts.length ? "esforco-medio" : "esforco-leve"}">
+          💊 Remédios: ${medAlerts.length ? `${medAlerts.length} p/ repor` : "Todos em dia"}
+        </span>
+        <span class="badge">🛒 Lista de Compras: ${shopMissing} item(ns)</span>
+        <span class="badge">🧊 Prontos no Freezer: ${readyPortions} porção(ões)</span>
+      </div>
+    `;
   }
 
-  // 6. Histórico de Ciclos (movido para a página Inicial)
+  // 4. Histórico de Ciclos
   renderCycleHistoryList();
 }
 
@@ -962,6 +938,19 @@ function renderExerciseCycleStats() {
 let currentPickSlotKey = "almoco";
 let editingRecipeId = null;
 
+function sendRecipeToIngredientsList(rec) {
+  if (!rec) return;
+  if (!Array.isArray(state.directIngredients)) state.directIngredients = [];
+  (rec.ingredients || []).forEach(ing => {
+    const clean = (ing || "").trim();
+    if (clean && !clean.startsWith("#")) {
+      state.directIngredients.push(clean);
+    }
+  });
+  saveState();
+  renderMenuPlanShoppingIngredients();
+}
+
 function renderCardapioView() {
   const day = state.selectedDay || 1;
   const dayIdx = day - 1;
@@ -979,12 +968,15 @@ function renderCardapioView() {
         const r = state.recipes.find(x => x.id === rid);
         if (!r) return "";
         return `
-          <div class="task-card" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;">
+          <div class="task-card" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 10px;">
             <div>
               <div class="task-name">${escapeHtml(r.name)}</div>
               <div class="muted">${escapeHtml(r.mealType)} • ${escapeHtml(r.protein)}</div>
             </div>
-            <button type="button" class="btn btn-sm danger" data-rm-slot="${s.key}" data-rm-idx="${idx}">Remover</button>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button type="button" class="btn btn-sm soft" data-day-send-ing="${escapeHtml(r.id)}">🧾 + Ingredientes</button>
+              <button type="button" class="btn btn-sm danger" data-rm-slot="${s.key}" data-rm-idx="${idx}">Remover</button>
+            </div>
           </div>
         `;
       }).join("");
@@ -1004,6 +996,15 @@ function renderCardapioView() {
       btn.addEventListener("click", () => {
         currentPickSlotKey = btn.getAttribute("data-open-pick");
         openPickRecipeModal();
+      });
+    });
+
+    slotsEl.querySelectorAll("[data-day-send-ing]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const rec = state.recipes.find(x => x.id === btn.getAttribute("data-day-send-ing"));
+        if (!rec) return;
+        sendRecipeToIngredientsList(rec);
+        btn.textContent = "✅ Enviado!";
       });
     });
 
@@ -1089,15 +1090,7 @@ function renderRecipesDatabaseList() {
     btn.addEventListener("click", () => {
       const rec = state.recipes.find(x => x.id === btn.getAttribute("data-send-rec-ing"));
       if (!rec) return;
-      if (!Array.isArray(state.directIngredients)) state.directIngredients = [];
-      (rec.ingredients || []).forEach(ing => {
-        const clean = (ing || "").trim();
-        if (clean && !clean.startsWith("#")) {
-          state.directIngredients.push(clean);
-        }
-      });
-      saveState();
-      renderMenuPlanShoppingIngredients();
+      sendRecipeToIngredientsList(rec);
       btn.textContent = "✅ Enviado p/ Ingredientes!";
     });
   });
@@ -1133,25 +1126,11 @@ function renderRecipesDatabaseList() {
 function getConsolidatedMenuIngredients() {
   const counts = new Map();
 
-  // 1. Ingredientes enviados diretamente das receitas
+  // Apenas os ingredientes enviados explicitamente pelo botão "Enviar p/ Ingredientes"
   (state.directIngredients || []).forEach(ing => {
     const clean = (ing || "").trim();
     if (!clean || clean.startsWith("#")) return;
     counts.set(clean, (counts.get(clean) || 0) + 1);
-  });
-
-  // 2. Ingredientes das receitas agendadas nos 14 dias
-  (state.menuPlan14 || []).forEach(day => {
-    SLOT_DEFS.forEach(s => {
-      (day[s.key] || []).forEach(rid => {
-        const r = state.recipes.find(x => x.id === rid);
-        (r?.ingredients || []).forEach(ing => {
-          const clean = (ing || "").trim();
-          if (!clean || clean.startsWith("#")) return;
-          counts.set(clean, (counts.get(clean) || 0) + 1);
-        });
-      });
-    });
   });
 
   return Array.from(counts.entries()).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
@@ -1175,14 +1154,17 @@ function renderMenuPlanShoppingIngredients() {
   if (!box) return;
 
   if (!entries.length) {
-    box.innerHTML = `<div class="muted">Envie ingredientes diretamente de uma receita ("🧾 + Enviar p/ Ingredientes") ou planeje os dias para ver a lista consolidada aqui.</div>`;
+    box.innerHTML = `<div class="muted">Nenhum ingrediente na lista no momento. Clique em "🧾 + Enviar p/ Ingredientes" em uma receita para adicioná-los aqui.</div>`;
     return;
   }
 
   box.innerHTML = entries.map(([ing, qtd]) => `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:0.86rem;">
       <span>${escapeHtml(ing)} ${qtd > 1 ? `<b>(×${qtd})</b>` : ""}</span>
-      <button type="button" class="btn btn-sm soft" data-send-ing-shop="${escapeHtml(ing)}">🛒 P/ Compras</button>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <button type="button" class="btn btn-sm soft" data-send-ing-shop="${escapeHtml(ing)}">🛒 P/ Compras</button>
+        <button type="button" class="icon-btn" data-del-direct-ing="${escapeHtml(ing)}" title="Remover da lista">🗑️</button>
+      </div>
     </div>
   `).join("");
 
@@ -1191,6 +1173,15 @@ function renderMenuPlanShoppingIngredients() {
       const ingName = btn.getAttribute("data-send-ing-shop");
       addQuickShoppingItem(ingName);
       btn.textContent = "✅ Enviado!";
+    });
+  });
+
+  box.querySelectorAll("[data-del-direct-ing]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const ingName = btn.getAttribute("data-del-direct-ing");
+      state.directIngredients = (state.directIngredients || []).filter(x => (x || "").trim() !== ingName);
+      saveState();
+      renderMenuPlanShoppingIngredients();
     });
   });
 }
@@ -1398,6 +1389,7 @@ function renderMedMonitorSubTab() {
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             ${boxBtns}
             <button type="button" class="icon-btn" data-med-edit="${escapeHtml(med.id)}" title="Configurar dose/quantidade">✏️</button>
+            <button type="button" class="icon-btn" data-med-del="${escapeHtml(med.id)}" title="Excluir">🗑️</button>
           </div>
         </div>
       </div>
@@ -1410,6 +1402,12 @@ function renderMedMonitorSubTab() {
       <div class="inv-card">
         <div class="inv-row-top">
           <div class="inv-name">${escapeHtml(med.name)}</div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <button type="button" class="icon-btn" data-med-edit="${escapeHtml(med.id)}" title="Editar">✏️</button>
+            <button type="button" class="icon-btn" data-med-del="${escapeHtml(med.id)}" title="Excluir">🗑️</button>
+          </div>
+        </div>
+        <div class="inv-row-top" style="margin-top:2px;">
           <div class="status-pills">
             <button type="button" class="status-pill ok ${med.status === "ok" ? "active" : ""}" data-spor-st="${escapeHtml(med.id)}" data-val="ok">🟢 Tem em casa</button>
             <button type="button" class="status-pill low ${med.status === "low" ? "active" : ""}" data-spor-st="${escapeHtml(med.id)}" data-val="low">🟡 Acabando</button>
@@ -1447,6 +1445,16 @@ function renderMedMonitorSubTab() {
   box.querySelectorAll("[data-med-edit]").forEach(btn => {
     btn.addEventListener("click", () => {
       openInvItemModal("remedios", btn.getAttribute("data-med-edit"));
+    });
+  });
+
+  box.querySelectorAll("[data-med-del]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-med-del");
+      if (!confirm("Excluir este remédio?")) return;
+      state.inventory.remedios = (state.inventory.remedios || []).filter(x => x.id !== id);
+      saveState();
+      renderAll();
     });
   });
 
@@ -1695,10 +1703,18 @@ function getExistingSubgroupsForEnv(envId) {
   return Array.from(groupsSet).sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
 
+function syncMedTrackedUI() {
+  const trackedCb = document.getElementById("invMedTracked");
+  const doseRow = document.getElementById("medDoseRow");
+  if (!trackedCb || !doseRow) return;
+  doseRow.style.display = trackedCb.checked ? "" : "none";
+}
+
 function populateInvSubgroups(envId, preferredGroup = "") {
   const selectEl = document.getElementById("invItemGroupSelect");
   const newWrapEl = document.getElementById("invNewGroupWrap");
   const customInputEl = document.getElementById("invItemGroupCustom");
+  const trackedCb = document.getElementById("invMedTracked");
   if (!selectEl) return;
 
   const groups = getExistingSubgroupsForEnv(envId);
@@ -1719,17 +1735,23 @@ function populateInvSubgroups(envId, preferredGroup = "") {
     selectEl.value = "__novo__";
   }
 
-  const toggleCustom = () => {
-    const isNew = selectEl.value === "__novo__";
+  const onSubgroupChange = () => {
+    const val = selectEl.value;
+    const isNew = val === "__novo__";
     if (newWrapEl) newWrapEl.style.display = isNew ? "block" : "none";
     if (isNew && customInputEl) {
       customInputEl.focus();
     }
+    // Se a categoria for Remédios, sincroniza automaticamente "Uso Esporádico" x "Uso Contínuo"
+    if (document.getElementById("invItemEnv")?.value === "remedios" && trackedCb && !isNew) {
+      trackedCb.checked = !isSporadicGroupName(val);
+      syncMedTrackedUI();
+    }
   };
 
   if (customInputEl) customInputEl.value = "";
-  toggleCustom();
-  selectEl.onchange = toggleCustom;
+  onSubgroupChange();
+  selectEl.onchange = onSubgroupChange;
 }
 
 function openInvItemModal(envId, itemId = null) {
@@ -1745,6 +1767,7 @@ function openInvItemModal(envId, itemId = null) {
   document.getElementById("invItemUnit").value = item ? (item.unit || (envId === "remedios" ? "comp" : "UN")) : (envId === "remedios" ? "comp" : "UN");
 
   const medFields = document.getElementById("medExtraFields");
+  const trackedCb = document.getElementById("invMedTracked");
   const onEnvChange = () => {
     const selEnv = document.getElementById("invItemEnv").value;
     medFields.style.display = (selEnv === "remedios") ? "block" : "none";
@@ -1753,7 +1776,27 @@ function openInvItemModal(envId, itemId = null) {
   medFields.style.display = (envId === "remedios") ? "block" : "none";
   document.getElementById("invItemEnv").onchange = onEnvChange;
 
-  document.getElementById("invMedTracked").checked = item ? !!item.tracked : (envId === "remedios");
+  const currentGroup = document.getElementById("invItemGroupSelect")?.value || "";
+  if (item) {
+    trackedCb.checked = !isSporadicGroupName(item.group) && !!item.tracked;
+  } else {
+    trackedCb.checked = (envId === "remedios") && !isSporadicGroupName(currentGroup);
+  }
+  syncMedTrackedUI();
+
+  trackedCb.onchange = () => {
+    syncMedTrackedUI();
+    const selEl = document.getElementById("invItemGroupSelect");
+    if (!selEl || document.getElementById("invItemEnv")?.value !== "remedios") return;
+    if (!trackedCb.checked && !isSporadicGroupName(selEl.value)) {
+      const sporOpt = Array.from(selEl.options).find(o => isSporadicGroupName(o.value));
+      if (sporOpt) selEl.value = sporOpt.value;
+    } else if (trackedCb.checked && isSporadicGroupName(selEl.value)) {
+      const contOpt = Array.from(selEl.options).find(o => !isSporadicGroupName(o.value) && o.value !== "__novo__");
+      if (contOpt) selEl.value = contOpt.value;
+    }
+  };
+
   document.getElementById("invMedDose").value = item?.dose || 1;
   document.getElementById("invMedPeriod").value = item?.period || "dia";
   document.getElementById("invMedAlertDays").value = item?.alertDays || 7;
@@ -1790,6 +1833,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Botão 🏠 Início fixo no topo
   document.getElementById("btnTopHome")?.addEventListener("click", () => switchMainView("hoje"));
+
+  // Botão de trocar frase sobre Fibromialgia na página Inicial
+  document.getElementById("btnNextFibroQuote")?.addEventListener("click", () => {
+    if (currentQuoteIdx === null) currentQuoteIdx = 0;
+    currentQuoteIdx = (currentQuoteIdx + 1) % FIBRO_QUOTES.length;
+    const quoteEl = document.getElementById("fibroQuoteBox");
+    if (quoteEl) quoteEl.textContent = FIBRO_QUOTES[currentQuoteIdx];
+  });
 
   // Navegação inferior
   document.querySelectorAll(".nav-item").forEach(btn => {
@@ -2156,7 +2207,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const qty = Math.max(0, parseFloat(document.getElementById("invItemQty").value) || 0);
     const unit = document.getElementById("invItemUnit").value;
-    const tracked = (targetEnv === "remedios") && document.getElementById("invMedTracked").checked;
+    const isSporadic = isSporadicGroupName(group);
+    const tracked = (targetEnv === "remedios") && !isSporadic && document.getElementById("invMedTracked").checked;
     const dose = parseFloat(document.getElementById("invMedDose").value) || 1;
     const period = document.getElementById("invMedPeriod").value || "dia";
     const alertDays = parseInt(document.getElementById("invMedAlertDays").value, 10) || 7;
